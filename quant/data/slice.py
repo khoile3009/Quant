@@ -1,4 +1,0 @@
-
-
-class Slice:
-    pass

@@ -6,3 +6,4 @@
 .idea/
 .vscode/
 data_storage/
+*.stats
