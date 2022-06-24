@@ -1,12 +1,12 @@
-from cgitb import small
+"""
+Data configuration
+"""
 from datetime import datetime
 from enum import Enum
 
 from dataclasses import dataclass
 import math
 from typing import Dict, List, Optional
-
-from numpy import gcd
 
 from quant.data.indicators import Indicator
 
@@ -56,7 +56,10 @@ class Interval(Enum):
             f'{smallest_unit.capitalize()}{second // SECONDS_PER_UNIT.get(smallest_unit, "0")}'
         ]
 
-    def GCD(self, other: "Interval") -> "Interval":
+    def gcd(self, other: "Interval") -> "Interval":
+        """
+        GCD of 2 interval
+        """
         if not other:
             return self
 
@@ -65,23 +68,23 @@ class Interval(Enum):
 
     @classmethod
     def list_gcd(cls, intervals: List["Interval"]) -> "Interval":
+        """
+        GCD of intervals
+        """
         if len(intervals) == 0:
             return None
 
         greatest_common_interval = None
         for interval in intervals:
-            greatest_common_interval = interval.GCD(greatest_common_interval)
+            greatest_common_interval = interval.gcd(greatest_common_interval)
 
         return greatest_common_interval
 
 
-class DataType(Enum):
-    JSON = "json"
-    CSV = "csv"
-
-
 class Ticker(Enum):
-    pass
+    """
+    Ticker abstract enum
+    """
 
 
 class BinanceTicker(Ticker):

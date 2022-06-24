@@ -1,6 +1,8 @@
+"""
+Script to update all local data
+"""
 from datetime import datetime
 
-from regex import R
 from quant.data.config import BinanceTicker, DataConfig, Interval, Ticker
 from quant.data.data_source import BinanceSource
 
