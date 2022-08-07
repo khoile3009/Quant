@@ -1,6 +1,7 @@
 """
 Data configuration
 """
+from ctypes import ArgumentError
 from datetime import datetime
 from enum import Enum
 
@@ -32,7 +33,8 @@ class Interval(Enum):
     D3 = "3d"
     W1 = "1w"
 
-    def get_seconds(self):
+    @property
+    def seconds(self):
         """
         Get seconds of an interval
         """
@@ -40,6 +42,14 @@ class Interval(Enum):
         unit = self.value[-1]
         unit_second = SECONDS_PER_UNIT.get(unit)
         return unit_second * time_value
+
+    # TODO: This might be used a lot, which lead to waste of computation. Think about how to cache it or turn it into constant since its not changing
+    @property
+    def milis(self):
+        """
+        Get ms of an interval
+        """
+        return self.seconds * 1000
 
     @staticmethod
     def from_seconds(second: int) -> "Interval":
@@ -63,7 +73,10 @@ class Interval(Enum):
         if not other:
             return self
 
-        gcd_second = math.gcd(self.get_seconds(), other.get_seconds())
+        if self.divisible(other):
+            raise ArgumentError("Argument is not divisible by this object")
+
+        gcd_second = math.gcd(self.seconds, other.seconds)
         return Interval.from_seconds(gcd_second)
 
     @classmethod
@@ -79,6 +92,21 @@ class Interval(Enum):
             greatest_common_interval = interval.gcd(greatest_common_interval)
 
         return greatest_common_interval
+
+    def divisible(self, interval: "Interval") -> bool:
+        """
+        Return if object is divisible by an interval
+        """
+        return self.seconds % interval.seconds
+
+    def difference(self, interval: "Interval") -> int:
+        """
+        Difference of 2 interval
+        """
+        if self.divisible(interval):
+            raise ArgumentError("Argument is not divisible by this object")
+
+        return self.seconds // interval.seconds
 
 
 class Ticker(Enum):
@@ -105,8 +133,8 @@ class DataConfig:
 
     interval: Interval
     ticker: Ticker
-    start_time: datetime
-    end_time: datetime = None
+    start_time: int
+    end_time: int = None
 
     def __hash__(self) -> int:
         return hash(self.ticker.value + self.interval.value)
@@ -128,8 +156,8 @@ class DatasetConfig:
 
     intervals: List[Interval]
     tickers: List[Ticker]
-    start_time: datetime
-    end_time: datetime
+    start_time: int
+    end_time: int
     indicators: List[Indicator]
     required_recall: Optional[int] = 0
 

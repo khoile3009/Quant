@@ -7,9 +7,12 @@ from quant.data.config import BinanceTicker, DataConfig, Interval, Ticker
 from quant.data.data_source import BinanceSource
 
 from quant.utils.io import IO
+from quant.utils.time_converter import TimeConverter
 
 
-START_TIME = datetime.strptime("Jun 1 2016  1:33PM", "%b %d %Y %I:%M%p")
+START_TIME = TimeConverter.datetime_to_ms(
+    datetime.strptime("Jun 1 2016  1:33PM", "%b %d %Y %I:%M%p")
+)
 
 
 if __name__ == "__main__":

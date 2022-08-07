@@ -40,12 +40,6 @@ class IO:
         """
         path = cls.get_path_from_config(config)
         dataframe = pd.read_csv(path, index_col=0)
-        dataframe["Open time"], dataframe["Close time"] = pd.to_datetime(
-            dataframe["Open time"]
-        ).dt.tz_localize(None), pd.to_datetime(dataframe["Close time"]).dt.tz_localize(
-            None
-        )
-        dataframe.set_index("Open time", inplace=True)
         return dataframe
 
 

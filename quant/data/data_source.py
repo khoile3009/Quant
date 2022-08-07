@@ -19,7 +19,6 @@ class DataSource(ABC):
     """
 
     # 1 datastream connect to many data source.
-    @abstractmethod
     @staticmethod
     def fetch(config: DataConfig) -> pd.DataFrame:
         """
@@ -63,7 +62,7 @@ class BinanceSource(DataSource):
         """
         Convert to rest output
         """
-        for string_list, index in enumerate(rest_output):
+        for index, string_list in enumerate(rest_output):
             rest_output[index] = (
                 [int(string_list[0])]
                 + [float(x) for x in string_list[1:6]]
@@ -77,11 +76,8 @@ class BinanceSource(DataSource):
         """
         Convert kline array to dataframe
         """
-        kline_array = np.array(kline_list, dtype=np.float32)
-        df = pd.DataFrame(kline_array, columns=cls.COLUMN_NAMES)
-        df["Open time"] = df["Open time"].apply(TimeConverter.ms_to_datetime)
-        df["Close time"] = df["Close time"].apply(TimeConverter.ms_to_datetime)
-        return df
+        dataframe = pd.DataFrame(kline_list, columns=cls.COLUMN_NAMES)
+        return dataframe
 
     @staticmethod
     def fetch_server(config: DataConfig) -> pd.DataFrame:
@@ -93,38 +89,37 @@ class BinanceSource(DataSource):
 
         client = get_binance_client()
 
-        start_ms = TimeConverter.datetime_to_ms(config.start_time)
-        end_ms = TimeConverter.datetime_to_ms(config.end_time)
-
         # Because binance only allow to fetch 1000 at a time, therefore we fetch 1000 each time and append it
         output_data = []
         kline_data = BinanceSource.convert_rest_output(
             client.get_klines(
                 symbol=config.ticker.value,
                 interval=config.interval.value,
-                startTime=start_ms,
-                endTime=end_ms,
+                startTime=config.start_time,
+                endTime=config.end_time,
                 limit=BinanceSource.MAX_BINANCE_LIMIT,
             )
         )
         output_data += kline_data
-        while len(kline_data) > 0 and (not end_ms or kline_data[-1][0] < end_ms):
-            new_start_ms = kline_data[-1][0] + TimeConverter.interval_to_ms(
+        while len(kline_data) > 0 and (
+            not config.end_time or kline_data[-1][0] < config.end_time
+        ):
+            new_start_time = kline_data[-1][0] + TimeConverter.interval_to_ms(
                 config.interval
             )
             kline_data = BinanceSource.convert_rest_output(
                 client.get_klines(
                     symbol=config.ticker.value,
                     interval=config.interval.value,
-                    startTime=new_start_ms,
-                    endTime=end_ms,
+                    startTime=new_start_time,
+                    endTime=config.end_time,
                     limit=BinanceSource.MAX_BINANCE_LIMIT,
                 )
             )
             output_data += kline_data
 
         # TODO: Trim the end if the endtime is specified
-
+        # print([r[0] for r in output_data[:10]])
         # Convert to csv
         output_csv = BinanceSource.convert_to_dataframe(output_data)
         return output_csv
@@ -132,10 +127,13 @@ class BinanceSource(DataSource):
     @staticmethod
     def fetch(config: DataConfig) -> pd.DataFrame:
         dataframe = IO.load(config)
-        dataframe = dataframe.loc[
-            (dataframe.index >= np.datetime64(config.start_time))
-            & (dataframe.index <= np.datetime64(config.end_time))
-        ]
+        if config.end_time:
+            dataframe = dataframe.loc[
+                (dataframe["Open time"] >= config.start_time)
+                & (dataframe["Close time"] <= config.end_time)
+            ]
+        else:
+            dataframe = dataframe.loc[dataframe["Open time"] >= config.start_time]
         return dataframe
 
 
@@ -155,8 +153,8 @@ if __name__ == "__main__":
     data_config = DataConfig(
         Interval.D1,
         BinanceTicker.BTCUSDT,
-        datetime.strptime("Jun 1 2018", "%b %d %Y"),
-        datetime.strptime("Jun 1 2019", "%b %d %Y"),
+        TimeConverter.datetime_to_ms(datetime.strptime("Jun 1 2018", "%b %d %Y")),
+        TimeConverter.datetime_to_ms(datetime.strptime("Jun 1 2019", "%b %d %Y")),
     )
-    result = BinanceSource.fetch(data_config)
-    print(result.head())
+    result = BinanceSource.fetch_server(data_config)
+    # print(result.head(10)["Open time"].to_list())

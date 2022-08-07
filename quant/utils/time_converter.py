@@ -48,3 +48,15 @@ class TimeConverter:
             time = time.replace(tzinfo=pytz.utc)
 
         return int((time - epoch).total_seconds() * TimeConverter.ms_per_second)
+
+
+if __name__ == "__main__":
+    now = datetime.now()
+    ms = TimeConverter.datetime_to_ms(now)
+    print(now)
+    print(ms)
+    for i in range(10):
+        now = TimeConverter.ms_to_datetime(ms)
+        ms = TimeConverter.datetime_to_ms(now)
+        print(now)
+        print(ms)
